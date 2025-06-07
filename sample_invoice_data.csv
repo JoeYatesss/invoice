@@ -1,0 +1,17 @@
+Business Name,Acme Consulting LLC
+Business Email,contact@acmeconsulting.com
+Business Phone,+1 (555) 123-4567
+Business Address,"123 Business Street, Suite 100, New York, NY 10001"
+Client Name,TechCorp Industries
+Client Email,billing@techcorp.com
+Client Address,"456 Corporate Blvd, San Francisco, CA 94105"
+Invoice Number,INV-2024-001
+Invoice Date,2024-01-15
+Due Date,2024-02-15
+Tax Rate,8.5
+
+Description,Quantity,Rate
+Strategic Consulting,40,150
+System Architecture Review,1,2500
+Project Management,20,125
+Technical Documentation,8,100 

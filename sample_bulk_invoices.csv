@@ -1,0 +1,10 @@
+Client,Description,Quantity,Rate,Client_Email,Client_Address
+ABC Corporation,Strategic Consulting,20,175,billing@abccorp.com,"123 Corporate Ave, New York, NY 10001"
+ABC Corporation,Market Analysis,1,2500,billing@abccorp.com,"123 Corporate Ave, New York, NY 10001"
+ABC Corporation,Report Preparation,8,125,billing@abccorp.com,"123 Corporate Ave, New York, NY 10001"
+XYZ Technologies,Software Development,40,200,finance@xyztech.com,"456 Tech Street, San Francisco, CA 94105"
+XYZ Technologies,System Integration,1,5000,finance@xyztech.com,"456 Tech Street, San Francisco, CA 94105"
+XYZ Technologies,Testing & QA,15,150,finance@xyztech.com,"456 Tech Street, San Francisco, CA 94105"
+SmartStart Inc,Business Plan Review,1,1500,accounts@smartstart.com,"789 Startup Blvd, Austin, TX 78701"
+SmartStart Inc,Financial Modeling,12,180,accounts@smartstart.com,"789 Startup Blvd, Austin, TX 78701"
+SmartStart Inc,Pitch Deck Creation,1,800,accounts@smartstart.com,"789 Startup Blvd, Austin, TX 78701" 

@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  ai-invoice-tool:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      # Optional: Add your OpenAI API key for enhanced features
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEFAULT_EXTRACTION_MODEL=${DEFAULT_EXTRACTION_MODEL:-gpt-3.5-turbo}
+    volumes:
+      # Mount credentials file if you have one
+      - ./credentials.json:/app/credentials.json:ro
+      # Mount temp directories for file processing
+      - ./temp:/app/temp
+      - ./uploads:/app/uploads
+      - ./exports:/app/exports
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s 

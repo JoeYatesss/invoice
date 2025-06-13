@@ -3,6 +3,8 @@ import json
 import re
 from typing import Dict, Any
 from io import BytesIO
+from datetime import datetime
+import tempfile
 
 # OCR and Image Processing
 try:
@@ -276,6 +278,57 @@ class InvoiceReader:
                 "line_items": [],
                 "error": f"Extraction failed: {str(e)}"
             }
+
+    def extract_text_from_pdf(self, uploaded_file) -> str:
+        """Extract raw text from PDF for contract analysis"""
+        try:
+            # Save uploaded file temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                tmp_file.write(uploaded_file.read())
+                tmp_file_path = tmp_file.name
+            
+            # Reset file pointer
+            uploaded_file.seek(0)
+            
+            # Extract text using PyMuPDF
+            text = ""
+            with fitz.open(tmp_file_path) as doc:
+                for page in doc:
+                    text += page.get_text()
+            
+            # Clean up temp file
+            os.unlink(tmp_file_path)
+            
+            return text.strip()
+            
+        except Exception as e:
+            print(f"Error extracting text from PDF: {str(e)}")
+            return ""
+    
+    def convert_to_invoice_format(self, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert extracted invoice/contract data to standard invoice format"""
+        return {
+            "business": {
+                "name": extracted_data.get("vendor_name", "Your Business"),
+                "address": extracted_data.get("vendor_address", ""),
+                "email": extracted_data.get("vendor_email", ""),
+                "phone": extracted_data.get("vendor_phone", "")
+            },
+            "client": {
+                "name": extracted_data.get("client_name", "Client"),
+                "address": extracted_data.get("client_address", ""),
+                "email": extracted_data.get("client_email", "")
+            },
+            "invoice": {
+                "number": extracted_data.get("invoice_number", f"INV-{datetime.now().strftime('%Y%m%d')}"),
+                "date": extracted_data.get("invoice_date", datetime.now().strftime('%Y-%m-%d')),
+                "due_date": extracted_data.get("due_date", ""),
+                "currency": extracted_data.get("currency", "USD")
+            },
+            "items": extracted_data.get("line_items", []),
+            "notes": "Generated from contract analysis",
+            "tax_rate": 0.0
+        }
 
 if __name__ == "__main__":
     reader = InvoiceReader()

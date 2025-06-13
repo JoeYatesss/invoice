@@ -62,32 +62,48 @@ def main():
         settings_page()
 
 def generate_invoice_page():
-    st.header("📝 Generate Invoice from Spreadsheet")
-    st.markdown("Upload Excel/CSV file to automatically populate invoice data")
+    st.header("📝 Generate Invoice from Contract")
+    st.markdown("Upload PDF contract to automatically extract invoice data and generate professional invoices")
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
         # File Upload Section
-        st.subheader("📂 Upload Invoice Data")
+        st.subheader("📄 Upload Contract PDF")
         
         uploaded_file = st.file_uploader(
-            "Upload Excel or CSV file with invoice data",
-            type=['csv', 'xlsx', 'xls'],
-            help="Upload a file containing client details, invoice items, and billing information"
+            "Upload PDF contract or agreement",
+            type=['pdf'],
+            help="Upload a PDF contract that contains client information, project details, and pricing"
         )
         
         if uploaded_file is not None:
             try:
-                with st.spinner("📊 Processing file..."):
-                    processor = CSVExcelProcessor()
-                    invoice_data = processor.read_invoice_data_from_file(uploaded_file)
+                with st.spinner("📄 Analyzing contract..."):
+                    reader = InvoiceReader()
+                    
+                    # Extract text using OCR first
+                    extracted_text = reader.extract_text_from_pdf(uploaded_file)
+                    
+                    # Use AI to convert contract data to invoice data
+                    if ai_helper.is_available():
+                        contract_data = ai_helper.extract_contract_invoice_data(extracted_text)
+                        if "error" not in contract_data:
+                            invoice_data = contract_data
+                        else:
+                            # Fallback to basic extraction
+                            basic_data = reader.extract_invoice_data(uploaded_file, "ai enhanced")
+                            invoice_data = reader.convert_to_invoice_format(basic_data)
+                    else:
+                        # Use OCR-only extraction
+                        basic_data = reader.extract_invoice_data(uploaded_file, "ocr only")
+                        invoice_data = reader.convert_to_invoice_format(basic_data)
                 
-                st.success(f"✅ File processed: {uploaded_file.name}")
+                st.success(f"✅ Contract analyzed: {uploaded_file.name}")
                 st.session_state.uploaded_invoice_data = invoice_data
                 
-                # Show preview of imported data
-                with st.expander("📋 Imported Data Preview", expanded=True):
+                # Show preview of extracted contract data
+                with st.expander("📋 Extracted Contract Data", expanded=True):
                     col_prev1, col_prev2 = st.columns(2)
                     
                     with col_prev1:
@@ -115,7 +131,7 @@ def generate_invoice_page():
                         st.metric("Total Amount", f"${total:.2f}")
                 
             except Exception as e:
-                st.error(f"Error processing file: {str(e)}")
+                st.error(f"Error analyzing contract: {str(e)}")
         
         st.divider()
         
@@ -227,25 +243,23 @@ def generate_invoice_page():
                     st.error(f"Error generating invoice: {str(e)}")
                     
         else:
-            st.info("📤 Upload a CSV/Excel file to generate an invoice")
+            st.info("📤 Upload a PDF contract to generate an invoice")
             
-            with st.expander("📋 File Format Guidelines"):
+            with st.expander("📋 Contract Guidelines"):
                 st.markdown("""
-                **Required Data:**
+                **The AI will extract:**
                 - Client information (name, address, email)
-                - Line items (description, quantity, rate)
+                - Service provider details  
+                - Project scope and deliverables
+                - Pricing and payment terms
+                - Contract dates and timelines
                 
-                **Example CSV Format:**
-                ```
-                Business Name,Your Company
-                Client Name,Client Corp
-                Client Email,billing@client.com
-                Invoice Number,INV-001
-                
-                Description,Quantity,Rate
-                Consulting,10,150
-                Development,1,2500
-                ```
+                **Best Results With:**
+                - Clear client and provider information
+                - Detailed scope of work sections
+                - Specific pricing/payment amounts
+                - Professional service agreements
+                - Consulting or project contracts
                 """)
         
         st.divider()
@@ -273,20 +287,82 @@ def generate_invoice_page():
 
 def bulk_import_page():
     st.header("📂 Bulk Invoice Generation")
-    st.markdown("Upload Excel/CSV with multiple clients or invoices to generate multiple PDFs automatically")
+    st.markdown("Upload multiple PDF contracts or Excel/CSV files to generate multiple invoices automatically")
     
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.subheader("Upload Bulk Invoice Data")
+        st.subheader("Upload Bulk Data")
         
-        uploaded_file = st.file_uploader(
-            "Upload CSV or Excel file with multiple invoice records",
-            type=['csv', 'xlsx', 'xls'],
-            help="Upload a file containing multiple clients or invoice records"
+        # Choose upload type
+        upload_type = st.radio(
+            "Choose upload type:",
+            ["📄 Multiple PDF Contracts", "📊 Excel/CSV Data"],
+            horizontal=True
         )
         
-        if uploaded_file is not None:
+        if upload_type == "📄 Multiple PDF Contracts":
+            uploaded_files = st.file_uploader(
+                "Upload multiple PDF contracts",
+                type=['pdf'],
+                accept_multiple_files=True,
+                help="Upload multiple PDF contracts to generate invoices from each"
+            )
+        else:
+            uploaded_file = st.file_uploader(
+                "Upload CSV or Excel file with multiple invoice records",
+                type=['csv', 'xlsx', 'xls'],
+                help="Upload a file containing multiple clients or invoice records"
+            )
+        
+        # Handle PDF contracts upload
+        if upload_type == "📄 Multiple PDF Contracts" and uploaded_files:
+            st.success(f"✅ {len(uploaded_files)} PDF contract(s) uploaded")
+            
+            if st.button("📄 Process PDF Contracts", type="primary", use_container_width=True):
+                try:
+                    with st.spinner("📄 Analyzing contracts..."):
+                        bulk_invoices = []
+                        reader = InvoiceReader()
+                        
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+                        
+                        for i, pdf_file in enumerate(uploaded_files):
+                            status_text.text(f"Processing {pdf_file.name} ({i+1}/{len(uploaded_files)})...")
+                            
+                            # Extract text from PDF
+                            extracted_text = reader.extract_text_from_pdf(pdf_file)
+                            
+                            # Use AI to convert to invoice data
+                            if ai_helper.is_available():
+                                contract_data = ai_helper.extract_contract_invoice_data(extracted_text)
+                                if "error" not in contract_data:
+                                    invoice_data = contract_data
+                                else:
+                                    # Fallback to basic extraction
+                                    basic_data = reader.extract_invoice_data(pdf_file, "ai enhanced")
+                                    invoice_data = reader.convert_to_invoice_format(basic_data)
+                            else:
+                                # Use OCR-only extraction
+                                basic_data = reader.extract_invoice_data(pdf_file, "ocr only")
+                                invoice_data = reader.convert_to_invoice_format(basic_data)
+                            
+                            # Add source file info
+                            invoice_data["source_file"] = pdf_file.name
+                            bulk_invoices.append(invoice_data)
+                            
+                            progress_bar.progress((i + 1) / len(uploaded_files))
+                        
+                        st.session_state.bulk_invoices = bulk_invoices
+                        status_text.text("All contracts processed!")
+                        st.success(f"✅ Processed {len(bulk_invoices)} contract(s)!")
+                    
+                except Exception as e:
+                    st.error(f"Error processing contracts: {str(e)}")
+        
+        # Handle CSV/Excel upload
+        elif upload_type == "📊 Excel/CSV Data" and 'uploaded_file' in locals() and uploaded_file is not None:
             st.success(f"✅ File uploaded: {uploaded_file.name}")
             
             # Show file format help
@@ -315,7 +391,7 @@ def bulk_import_page():
                 - Unique invoice numbers → Separate invoices per number
                 """)
             
-            if st.button("🔍 Process Bulk File", type="primary", use_container_width=True):
+            if st.button("📊 Process Excel/CSV", type="primary", use_container_width=True):
                 try:
                     with st.spinner("📊 Processing bulk invoices..."):
                         processor = CSVExcelProcessor()

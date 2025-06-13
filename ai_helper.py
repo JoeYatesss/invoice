@@ -206,6 +206,81 @@ class AIHelper:
                 "email": "billing@client.com"
             }
     
+    def extract_contract_invoice_data(self, contract_text: str) -> Dict[str, Any]:
+        """Extract invoice-relevant data from a contract PDF"""
+        if not self.is_available():
+            return {"error": "OpenAI not available"}
+        
+        try:
+            prompt = f"""
+            Extract invoice-relevant information from this contract text. The goal is to create invoice data from a signed contract.
+            
+            Contract Text:
+            {contract_text}
+            
+            Extract and return ONLY a JSON object with this exact structure:
+            {{
+                "client": {{
+                    "name": "extracted client/company name",
+                    "address": "extracted client address",
+                    "email": "extracted client email if found"
+                }},
+                "business": {{
+                    "name": "extracted service provider/contractor name",
+                    "address": "extracted provider address",
+                    "email": "extracted provider email"
+                }},
+                "invoice": {{
+                    "number": "generate invoice number like INV-YYYYMMDD-001",
+                    "date": "{datetime.now().strftime('%Y-%m-%d')}",
+                    "due_date": "calculate due date (30 days from today)",
+                    "currency": "USD"
+                }},
+                "items": [
+                    {{
+                        "description": "service/deliverable description from contract",
+                        "quantity": 1,
+                        "rate": "extracted price/amount as number"
+                    }}
+                ],
+                "notes": "Professional thank you message",
+                "tax_rate": 0.0
+            }}
+            
+            Focus on:
+            - Service descriptions and deliverables
+            - Payment amounts and pricing
+            - Client and service provider details
+            - Project scope items
+            
+            If multiple services are mentioned, create separate line items.
+            If total contract value is mentioned, break it down into logical services.
+            """
+            
+            response = self.client.chat.completions.create(
+                model=st.session_state.settings.get('extraction_model', 'gpt-3.5-turbo'),
+                messages=[
+                    {"role": "system", "content": "You are an expert at extracting invoice data from contracts. Always return valid JSON with realistic business information."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,
+                max_tokens=1500
+            )
+            
+            content = response.choices[0].message.content.strip()
+            
+            # Extract JSON from response
+            if content.startswith('```json'):
+                content = content[7:-3]
+            elif content.startswith('```'):
+                content = content[3:-3]
+            
+            result = json.loads(content)
+            return result
+            
+        except Exception as e:
+            return {"error": f"Contract extraction failed: {str(e)}"}
+
     def _get_default_items(self) -> List[Dict[str, Any]]:
         """Return default invoice items when AI is not available"""
         return [
